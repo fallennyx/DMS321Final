@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guess the Number Game</title>
+</head>
+<body>
+  <h1>Guess the Number Game</h1>
+  <p>Username: <input type="text" id="usernameInput" /><button onclick="submitUsername()">Submit Username</button></p>
+  <p id="result"></p>
+  <p>Your Guess: <input type="text" id="guessInput" disabled /><button onclick="makeGuess()" disabled>Submit Guess</button></p>
+  <button id="playAgain" style="display: none;" onclick="playAgain()">Play Again</button>
+  <h2>Scores</h2>
+  <h2>Leaderboard</h2>
+  <ul id="leaderboard"></ul>
+  <ul id="scores"></ul>
+
+  <script>
+    let socket = new WebSocket('ws://localhost:3000');
+    let username;
+
+    socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+      switch (data.type) {
+        case 'number':
+          document.getElementById('result').innerText = 'Guess the number between 1 and 5!';
+          document.getElementById('guessInput').disabled = false; // Enable the guess input field after receiving the secret number
+          document.querySelector('button[onclick="makeGuess()"]').disabled = false; // Enable the guess button after receiving the secret number
+          break;
+        case 'result':
+          document.getElementById('result').innerText = data.data;
+          document.getElementById('playAgain').style.display = 'block'; // Show the "Play Again" button after a guess
+          break;
+        case 'scores':
+          updateScores(data.data); // Update the scores when a 'scores' event is received
+          break;
+        default:
+          break;
+      }
+    });
+
+    function submitUsername() {
+      username = document.getElementById('usernameInput').value;
+      socket.send(JSON.stringify({ type: 'username', data: username })); // Send the username to the server
+    }
+
+    function makeGuess() {
+      const guessInput = document.getElementById('guessInput');
+      const guess = parseInt(guessInput.value);
+      if (!isNaN(guess)) {
+        socket.send(JSON.stringify({ type: 'guess', data: guess })); // Send the guess to the server
+        guessInput.value = '';
+      }
+    }
+
+    function playAgain() {
+      document.getElementById('result').innerText = ''; // Clear the result message
+      document.getElementById('playAgain').style.display = 'none'; // Hide the "Play Again" button
+      socket.send(JSON.stringify({ type: 'newGame' })); // Send a "new game" event to the server
+    }
+
+    function updateScores(scores) {
+      const scoresList = document.getElementById('scores');
+      scoresList.innerHTML = '';
+      scores.forEach((score) => {
+        const listItem = document.createElement('li');
+        listItem.innerText = `${score.username}: ${score.score} points`;
+        scoresList.appendChild(listItem);
+      });
+
+      // Update the leaderboard
+      const leaderboardList = document.getElementById('leaderboard');
+      leaderboardList.innerHTML = '';
+      leaderboard.forEach((leader) => {
+        const listItem = document.createElement('li');
+        listItem.innerText = `${leader.username}: ${leader.score} points`;
+        leaderboardList.appendChild(listItem);
+      });
+    }
+
+    </script>
+
+</body>
+</html>
